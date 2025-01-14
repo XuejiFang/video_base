@@ -1,0 +1,88 @@
+vae:
+    module: cogvideo.models
+    class_name: AutoencoderKLCogVideoX
+    params:
+        pretrained: /storage/qiguojunLab/qiguojun/home/Models/THUDM/CogVideoX-2b/vae
+tokenizer:
+    module: transformers
+    class_name: T5Tokenizer
+    params:
+        pretrained: /storage/qiguojunLab/qiguojun/home/Models/google/t5-v1_1-xxl/
+text_encoder:
+    module: transformers
+    class_name: T5EncoderModel
+    params:
+        pretrained: /storage/qiguojunLab/qiguojun/home/Models/google/t5-v1_1-xxl/
+transformer:
+    module: cogvideo.models
+    class_name: CogVideoXTransformer3DModel
+    params:
+        activation_fn:                      gelu-approximate
+        attention_bias:                     true
+        attention_head_dim:                 64
+        dropout:                            0.0
+        flip_sin_to_cos:                    true
+        freq_shift:                         0
+        in_channels:                        16
+        max_text_seq_length:                226
+        norm_elementwise_affine:            true
+        norm_eps:                           0.00001
+        num_attention_heads:                30
+        num_layers:                         30
+        out_channels:                       16
+        patch_size:                         2
+        sample_frames:                      49
+        sample_height:                      60
+        sample_width:                       90
+        spatial_interpolation_scale:        1.875
+        temporal_compression_ratio:         4
+        temporal_interpolation_scale:       1.0
+        text_embed_dim:                     4096
+        time_embed_dim:                     512
+        timestep_activation_fn:             silu
+        use_rotary_positional_embeddings:   false
+
+loss_function:
+    module: losses.mes
+    class_name: MSELoss
+    params: {}
+optimizer:
+    module: torch.optim
+    class_name: Adam
+    params:
+        lr:                         0.00001
+        betas:                      [0.9, 0.999]
+        weight_decay:               0.01
+        eps:                        0.00000001
+lr_scheduler:
+    name:                           constant_with_warmup
+    lr_warmup_steps:                1000
+
+dataloader:
+    module: training.dataset
+    class_name: JointDataLoader
+    params:
+        batch_size:                 8
+        vid_folder:                 /
+        img_folder:                 /
+        vid_pkl_path:               /storage/qiguojunLab/fangxueji/Projects/video_base/dataset/phase4_t2v_v1_hd_finetune/hd-video-4.3m.pkl
+        img_pkl_path:               /storage/qiguojunLab/fangxueji/Projects/video_base/dataset/phase3_t2v_v4.3_joint_youtube_image/image-9m.pkl
+        max_height:                 480
+        max_width:                  640
+        num_frames:                 29
+        sample_rate:                2
+        target_prompt_key:          caption
+        target_path_keys:           path
+        cfg:                        0.1
+        num_workers:                16
+        
+training_args:
+    output_dir:                     ./outputs
+    logging_dir:                    logs
+    grad_acc:                       1
+    mixed_precision:                bf16
+    report_to:                      wandb
+    ema_decay:                      0.9999
+    ema_start_step:                 0
+    max_train_steps:                200_000
+    resume_from_checkpoint:         null
