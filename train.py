@@ -8,13 +8,13 @@ import transformers
 
 from accelerate import Accelerator
 from accelerate.logging import get_logger
-from accelerate.utils import DistributedType, ProjectConfiguration, set_seed
+from accelerate.utils import ProjectConfiguration, set_seed
 from copy import deepcopy
 from diffusers.optimization import get_scheduler
 from diffusers.training_utils import EMAModel
 from diffusers.utils import export_to_video
 from pathlib import Path
-from utils import dict_to_namespace, get_instance, register_module, freeze_module
+from utils import dict_to_namespace, get_class, get_instance, register_module, freeze_module
 from training.train_loop import train_diff_loop
 
 @torch.no_grad()
@@ -92,7 +92,7 @@ def main(args):
                     weights.pop()
 
     def load_model_hook(models, input_dir):
-        load_model = EMAModel.from_pretrained(os.path.join(input_dir, "model_ema"), model_cls=type(models[0]))
+        load_model = EMAModel.from_pretrained(os.path.join(input_dir, "model_ema"), model_cls=get_class(args.transformer))
         ema_model.load_state_dict(load_model.state_dict())
         ema_model.to(accelerator.device)
         del load_model

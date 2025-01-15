@@ -8,19 +8,21 @@ def dict_to_namespace(d):
     else:
         return d
 
-def get_instance(config, **kwargs):
+def get_class(config):
     module_name, class_name = config.module, config.class_name
-    params = getattr(config, "params", {})
-    params = vars(params) if isinstance(params, argparse.Namespace) else params
     module = importlib.import_module(module_name)
     cls = getattr(module, class_name)
+    return cls
+
+def get_instance(config, **kwargs):
+    cls = get_class(config)
+    params = getattr(config, "params", {})
+    params = vars(params) if isinstance(params, argparse.Namespace) else params
     return cls(**params, **kwargs)
 
 def register_module(config, dtype=torch.float16):
-    module_name, class_name = config.module, config.class_name
+    cls = get_class(config)
     params = getattr(config, "params", {})
-    module = importlib.import_module(module_name)
-    cls = getattr(module, class_name)
     if hasattr(cls, "from_pretrained") and "pretrained" in params:
         return cls.from_pretrained(params.pretrained,  torch_dtype=dtype)
     else:

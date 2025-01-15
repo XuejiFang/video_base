@@ -1,1 +1,1 @@
-from .utils import get_instance, register_module, dict_to_namespace, freeze_module
+from .utils import get_class, get_instance, register_module, dict_to_namespace, freeze_module
