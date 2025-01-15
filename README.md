@@ -1,4 +1,18 @@
 # Diffusion Codebase
+## 1. Implement of CogVideoX-0.6B
+### 1.1. Text-to-Image
+**Training Recipe**
+```yaml
+dataset:    ~/phase3_t2v_v4.3_joint_youtube_image/image-9m.pkl
+batch_size: 768
+lr:         0.0001
+warmup:     1000
+ema_decay:  0.9999
+```
+**Loss Curve**
+
+**GenEval**
+
 
 ## ToDo
 - [x] [15/1/25] Training Loop
