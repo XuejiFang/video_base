@@ -48,9 +48,9 @@ def generate_videos(accelerator, vae, tokenizer, text_encoder, transformer, devi
         'prompts/vbench/temporal_style.txt',
     ]
 
-    save_root = "outputs_eval/vbench"
+    save_root = "outputs_eval/vbench/cogvideox-2b"
     for prompt_path in prompts_paths:
-        with open(prompt_path, 'r') as f:
+        with open(prompt_path, 'r', encoding="utf-8") as f:
             prompts = f.readlines()
             for i, prompt in enumerate(prompts):
                 save_dir = os.path.join(save_root, prompt_path.split('/')[-1].split('.')[0])
@@ -59,24 +59,25 @@ def generate_videos(accelerator, vae, tokenizer, text_encoder, transformer, devi
                     continue
                 prompt = prompt.strip()
                 for j in range(5):
+                    save_path = os.path.join(save_dir, f"{prompt}-{j}.mp4")
+                    if os.path.exists(save_path):
+                        continue
                     video = pipe(prompt).frames[0]
-                    export_to_video(video, os.path.join(save_dir, f"{prompt}-{j}.mp4"), fps=8)
+                    export_to_video(video, save_path, fps=8)
 
 def main(args):
     # 1. Initialize Accelerator
-    training_args = args.training_args
-    logging_dir = Path(training_args.output_dir, training_args.logging_dir)
-    accelerator_project_config = ProjectConfiguration(project_dir=training_args.output_dir, logging_dir=logging_dir)
+    train_args = args.training_args
+    logging_dir = Path(train_args.output_dir, train_args.logging_dir)
+    accelerator_project_config = ProjectConfiguration(project_dir=train_args.output_dir, logging_dir=logging_dir)
     accelerator = Accelerator(
-        gradient_accumulation_steps=training_args.gradient_accumulation_steps,
-        mixed_precision=training_args.mixed_precision,
-        log_with=training_args.report_to,
+        gradient_accumulation_steps=train_args.grad_acc,
+        mixed_precision=train_args.mixed_precision,
+        log_with=train_args.report_to,
         project_config=accelerator_project_config,
     )
-
     device = accelerator.device
     weight_dtype = {"fp16": torch.float16, "bf16": torch.bfloat16}.get(accelerator.mixed_precision, torch.float32)
-
     # 2. Load and Create Models
     vae             = register_module(args.vae, dtype=weight_dtype).to(device)
     tokenizer       = register_module(args.tokenizer)

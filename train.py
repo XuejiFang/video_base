@@ -1,7 +1,10 @@
 import argparse
+import diffusers
+import logging
 import os
 import yaml
 import torch
+import transformers
 
 from accelerate import Accelerator
 from accelerate.logging import get_logger
@@ -35,20 +38,41 @@ def main(args):
         log_with=train_args.report_to,
         project_config=accelerator_project_config,
     )
+    accelerator.init_trackers(
+        project_name=train_args.exp_name,
+        config={"dropout": 0.1, "learning_rate": 1e-2},
+        init_kwargs={"wandb": {"entity": train_args.team_name}}
+        )
+    train_args.output_dir = Path(train_args.output_dir, train_args.exp_name)
+    if accelerator.is_main_process and train_args.output_dir: os.makedirs(train_args.output_dir, exist_ok=True)
     device = accelerator.device
     weight_dtype = {"fp16": torch.float16, "bf16": torch.bfloat16}.get(accelerator.mixed_precision, torch.float32)
     logger = get_logger(__name__)
     logger.info("***** Initalized Accelerator *****")
+    logging.basicConfig(
+        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+        datefmt="%m/%d/%Y %H:%M:%S",
+        level=logging.INFO,
+    )
+    logger.info(accelerator.state, main_process_only=False)
+    if accelerator.is_local_main_process:
+        transformers.utils.logging.set_verbosity_warning()
+        diffusers.utils.logging.set_verbosity_info()
+    else:
+        transformers.utils.logging.set_verbosity_error()
+        diffusers.utils.logging.set_verbosity_error()
     # 2. Load and Create Models
     logger.info("***** Loading and Creating Models *****")
     vae             = register_module(args.vae, dtype=weight_dtype).to(device)
     tokenizer       = register_module(args.tokenizer)
     text_encoder    = register_module(args.text_encoder, dtype=weight_dtype).to(device)
+    vae.enable_slicing(), vae.enable_tiling()
     freeze_module(vae, trainable=False)
     freeze_module(text_encoder, trainable=False)
 
-    model = get_instance(args.transformer).to(device)
+    model = get_instance(args.transformer).to(device, dtype=weight_dtype)
     model.train()
+    model.gradient_checkpointing = train_args.gradient_checkpointing
 
     logger.info("***** Creating EMA Model *****")
     ema_model = deepcopy(model)
@@ -60,8 +84,7 @@ def main(args):
     # create custom saving & loading hooks so that `accelerator.save_state(...)` serializes in a nice format
     def save_model_hook(models, weights, output_dir):
         if accelerator.is_main_process:
-            if args.use_ema:
-                ema_model.save_pretrained(os.path.join(output_dir, "model_ema"))
+            ema_model.save_pretrained(os.path.join(output_dir, "model_ema"))
             for i, model in enumerate(models):
                 model.save_pretrained(os.path.join(output_dir, "model"))
                 if weights:  # Don't pop if empty
@@ -69,7 +92,7 @@ def main(args):
                     weights.pop()
 
     def load_model_hook(models, input_dir):
-        load_model = EMAModel.from_pretrained(os.path.join(input_dir, "model_ema"), type(model))
+        load_model = EMAModel.from_pretrained(os.path.join(input_dir, "model_ema"), model_cls=type(models[0]))
         ema_model.load_state_dict(load_model.state_dict())
         ema_model.to(accelerator.device)
         del load_model
@@ -111,31 +134,36 @@ def main(args):
     logger.info(f"  Total training parameters = {sum(p.numel() for p in model.parameters() if p.requires_grad) / 1e9} B")
 
     if train_args.resume_from_checkpoint:
-        if args.resume_from_checkpoint != "latest":
-            path = os.path.basename(args.resume_from_checkpoint)
+        if train_args.resume_from_checkpoint != "latest":
+            path = os.path.basename(train_args.resume_from_checkpoint)
         else:
             # Get the most recent checkpoint
-            dirs = os.listdir(args.output_dir)
+            dirs = os.listdir(train_args.output_dir)
             dirs = [d for d in dirs if d.startswith("checkpoint")]
             dirs = sorted(dirs, key=lambda x: int(x.split("-")[1]))
             path = dirs[-1] if len(dirs) > 0 else None
 
         if path is None:
             accelerator.print(
-                f"Checkpoint '{args.resume_from_checkpoint}' does not exist. Starting a new training run."
+                f"Checkpoint '{train_args.resume_from_checkpoint}' does not exist. Starting a new training run."
             )
-            args.resume_from_checkpoint = None
+            train_args.resume_from_checkpoint = None
             initial_global_step = 0
         else:
             accelerator.print(f"Resuming from checkpoint {path}")
-            accelerator.load_state(os.path.join(args.output_dir, path))
+            accelerator.load_state(os.path.join(train_args.output_dir, path))
             global_step = int(path.split("-")[1])
             initial_global_step = global_step
     else:
         initial_global_step = 0
 
-    train_diff_loop(model, ema_model, vae, text_encoder, dataloader, lr_scheduler, initial_global_step, train_args.max_train_steps)
+    loss_func = get_instance(args.loss_function)
+    train_diff_loop(args, accelerator, loss_func, 
+                    model, ema_model, vae, text_encoder, 
+                    dataloader, optimizer, 
+                    lr_scheduler, initial_global_step, train_args.max_train_steps, logger, weight_dtype)
 
+    accelerator.wait_for_everyone()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Training script with dynamic config.")

@@ -1,0 +1,6 @@
+**__pycache__/
+*.pt
+*.pkl
+outputs*
+results*
+tmp*
