@@ -3,4 +3,6 @@
 *.pkl
 outputs*
 results*
+slurm*
 tmp*
+wandb*
