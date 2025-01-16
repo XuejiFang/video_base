@@ -7,12 +7,12 @@ tokenizer:
     module: transformers
     class_name: T5Tokenizer
     params:
-        pretrained: /storage/qiguojunLab/qiguojun/home/Models/google/t5-v1_1-xxl/
+        pretrained: /storage/qiguojunLab/qiguojun/home/Models/google/mt5-base/
 text_encoder:
     module: transformers
     class_name: T5EncoderModel
     params:
-        pretrained: /storage/qiguojunLab/qiguojun/home/Models/google/t5-v1_1-xxl/
+        pretrained: /storage/qiguojunLab/qiguojun/home/Models/google/mt5-base/
 transformer:
     module: cogvideo.models
     class_name: CogVideoXTransformer3DModel
@@ -27,8 +27,8 @@ transformer:
         max_text_seq_length:                226
         norm_elementwise_affine:            true
         norm_eps:                           0.00001
-        num_attention_heads:                18  # 30
-        num_layers:                         26  # 30
+        num_attention_heads:                24  # 30
+        num_layers:                         30  # 30
         out_channels:                       16
         patch_size:                         2
         sample_frames:                      1
@@ -37,7 +37,7 @@ transformer:
         spatial_interpolation_scale:        1.875
         temporal_compression_ratio:         4
         temporal_interpolation_scale:       1.0
-        text_embed_dim:                     4096
+        text_embed_dim:                     768
         time_embed_dim:                     512
         timestep_activation_fn:             silu
         use_rotary_positional_embeddings:   false
@@ -49,7 +49,7 @@ loss_function:
     
 optimizer:
     module: torch.optim
-    class_name: Adam
+    class_name: AdamW
     params:
         lr:                         0.0001
         betas:                      [0.9, 0.999]
@@ -63,7 +63,7 @@ dataloader:
     module: training.dataset
     class_name: ImageDataLoader
     params:
-        batch_size:                 96
+        batch_size:                 192
         img_folder:                 /
         img_pkl_path:               /storage/qiguojunLab/fangxueji/Projects/video_base/dataset/phase3_t2v_v4.3_joint_youtube_image/image-9m.pkl
         max_height:                 256
@@ -76,7 +76,7 @@ dataloader:
         
 training_args:
     team_name:                      maple-video
-    exp_name:                       cog_t2i_0.6b
+    exp_name:                       cog_t2i_1b
     output_dir:                     ./outputs/
     logging_dir:                    logs
     grad_acc:                       1
@@ -88,5 +88,5 @@ training_args:
     resume_from_checkpoint:         latest
     checkpointing_steps:            1000
     checkpoints_total_limit:        100
-    gradient_checkpointing:         false
+    gradient_checkpointing:         true
     max_grad_norm:                  10.0

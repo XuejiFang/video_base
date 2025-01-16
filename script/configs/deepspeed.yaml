@@ -2,7 +2,7 @@ compute_environment: LOCAL_MACHINE
 debug: false
 deepspeed_config:
   deepspeed_multinode_launcher: standard
-  gradient_clipping: 10.0
+  gradient_clipping: 1.0
   gradient_accumulation_steps: 1
   zero3_init_flag: false
   zero_stage: 2
@@ -10,7 +10,7 @@ distributed_type: DEEPSPEED
 downcast_bf16: 'no'
 enable_cpu_affinity: false
 machine_rank: 0
-main_process_ip: gnho040_ib
+main_process_ip: 127.0.0.1
 main_process_port: 9199
 main_training_function: main
 mixed_precision: bf16

@@ -25,7 +25,7 @@ from utils import dict_to_namespace, get_instance, register_module, freeze_modul
     # x_rec.save('./tmp_rec.png')
 
 @torch.no_grad()
-def generate_videos(accelerator, vae, tokenizer, text_encoder, transformer, device, weight_dtype):
+def generate_videos_vebench(args, accelerator, vae, tokenizer, text_encoder, transformer, device, weight_dtype):
     from cogvideo.pipelines import CogVideoXPipeline
     from diffusers import CogVideoXDDIMScheduler
     import os
@@ -65,6 +65,44 @@ def generate_videos(accelerator, vae, tokenizer, text_encoder, transformer, devi
                     video = pipe(prompt).frames[0]
                     export_to_video(video, save_path, fps=8)
 
+@torch.no_grad()
+def generate_images(args, accelerator, vae, tokenizer, text_encoder, transformer, device, weight_dtype):
+    from cogvideo.pipelines import CogVideoXPipeline
+    from opensora.pipelines import OpenSoraPipeline
+    from diffusers import FlowMatchEulerDiscreteScheduler, FlowMatchHeunDiscreteScheduler
+    from diffusers.utils import make_image_grid
+    import os
+    scheduler = FlowMatchEulerDiscreteScheduler()
+    pipe = OpenSoraPipeline(vae=vae, text_encoder=text_encoder, tokenizer=tokenizer, 
+                             transformer=transformer, scheduler=scheduler).to(device, dtype=weight_dtype)
+
+    prompts_paths = [
+        # === Image ===
+        # 'prompts/prompts_zemin.txt'
+        'prompts/prompts_imagenet.txt'
+    ]
+
+    save_root = Path(args.save_dir, args.model.split('/')[-4], args.model.split('/')[-3], args.model.split('/')[-2])
+    for prompt_path in prompts_paths:
+        with open(prompt_path, 'r', encoding="utf-8") as f:
+            prompts = f.readlines()
+            for i, prompt in enumerate(prompts):
+                save_dir = os.path.join(save_root, prompt_path.split('/')[-1].split('.')[0])
+                os.makedirs(save_dir, exist_ok=True)
+                if i % accelerator.num_processes != accelerator.process_index:
+                    continue
+                prompt = prompt.strip()
+                image_grid = []
+                for j in range(5):
+                    save_path = os.path.join(save_dir, f"{i}-{j}.png")
+                    if os.path.exists(save_path):
+                        continue
+                    image = pipe(prompt, num_frames=1, height=256, width=256, num_inference_steps=30).images[0][0]
+                    image.save(save_path)
+                    image_grid.append(image)
+                image_grid = make_image_grid(image_grid, cols=5, rows=1)
+                image_grid.save(os.path.join(save_dir, f"grid-{i}.png"))
+
 def main(args):
     # 1. Initialize Accelerator
     train_args = args.training_args
@@ -87,10 +125,10 @@ def main(args):
 
     transformer     = get_instance(args.transformer).to(device)
     from safetensors.torch import load_file
-    states = load_file('/storage/qiguojunLab/qiguojun/home/Models/THUDM/CogVideoX-2b/transformer/diffusion_pytorch_model.safetensors')
+    states = load_file(args.model)
     transformer.load_state_dict(states)
     print(f"Total GPUS: {accelerator.num_processes}, Current GPU: {accelerator.process_index}")
-    generate_videos(accelerator, vae, tokenizer, text_encoder, transformer, device, weight_dtype)
+    generate_images(args, accelerator, vae, tokenizer, text_encoder, transformer, device, weight_dtype)
     # 3. Prepare Optimizer
 
     # 4. Prepare Dataloader
@@ -100,9 +138,16 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Training script with dynamic config.")
     parser.add_argument('--config', type=str, required=True, help="Path to the config.yaml file.")
+    parser.add_argument('--model', type=str, required=True, help="Path to the Model.")
+    parser.add_argument('--save_dir', type=str, default='outputs_eval/debug', help="Path to the save directory.")
     args = parser.parse_args()
 
     with open(args.config, 'r') as file:
-            config = yaml.safe_load(file)
-    
+        config = yaml.safe_load(file)
+    config.update(
+        {
+            'model': args.model,
+            'save_dir': args.save_dir
+        }
+    )
     main(dict_to_namespace(config))

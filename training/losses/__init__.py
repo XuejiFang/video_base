@@ -1,1 +1,1 @@
-from .fm import CogFMLoss
+from .fm import CogFMLoss, OpenSoraFMLoss

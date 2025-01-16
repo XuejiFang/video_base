@@ -40,7 +40,7 @@ def main(args):
     )
     accelerator.init_trackers(
         project_name=train_args.exp_name,
-        config={"dropout": 0.1, "learning_rate": 1e-2},
+        config=vars(args),
         init_kwargs={"wandb": {"entity": train_args.team_name}}
         )
     train_args.output_dir = Path(train_args.output_dir, train_args.exp_name)
@@ -78,8 +78,9 @@ def main(args):
     ema_model = deepcopy(model)
     ema_model = EMAModel(
         ema_model.parameters(), decay=train_args.ema_decay, update_after_step=train_args.ema_start_step,
-        model_cls=type(model), model_config=ema_model.config
+        model_cls=get_class(args.transformer), model_config=ema_model.config
     )
+    ema_model.to(accelerator.device)
 
     # create custom saving & loading hooks so that `accelerator.save_state(...)` serializes in a nice format
     def save_model_hook(models, weights, output_dir):
@@ -164,6 +165,7 @@ def main(args):
                     lr_scheduler, initial_global_step, train_args.max_train_steps, logger, weight_dtype)
 
     accelerator.wait_for_everyone()
+    accelerator.end_training()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Training script with dynamic config.")
@@ -171,6 +173,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     with open(args.config, 'r') as file:
-            config = yaml.safe_load(file)
+        config = yaml.safe_load(file)
     
     main(dict_to_namespace(config))

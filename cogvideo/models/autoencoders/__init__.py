@@ -1,1 +1,2 @@
 from .autoencoder_kl_cogvideox import AutoencoderKLCogVideoX
+from .autoencoder_kl import AutoencoderKL

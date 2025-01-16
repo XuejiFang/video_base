@@ -1,10 +1,9 @@
-from accelerate.utils import DistributedType, ProjectConfiguration, set_seed
+from accelerate.utils import DistributedType
 from tqdm import tqdm
 import os
 import shutil
 import torch
 
-from diffusers import DDIMScheduler
 class ProgressInfo:
     def __init__(self, global_step, train_loss=0.0):
         self.global_step = global_step
@@ -65,11 +64,11 @@ def train_diff_loop(
             input_ids   = batch["input_ids"].to(accelerator.device).squeeze_(1)
             cond_mask   = batch["cond_mask"].to(accelerator.device).squeeze_(1)
             with torch.no_grad():
-                z_0             = vae.scale_(vae.encode(x).latent_dist.sample())
+                z_0             = vae.scale_(vae.encode(x).latent_dist.sample()) if x.shape[1] == 3 else vae.scale_(x)
                 prompt_embed    = text_encoder(input_ids, cond_mask)['last_hidden_state']
 
-            loss = loss_func(model, z_0, prompt_embed)
-            avg_loss = accelerator.gather(loss.repeat(args.dataloader.params.batch_size)).mean()
+            loss = loss_func(model, z_0, prompt_embed, cond_mask)
+            avg_loss = accelerator.gather(loss).mean()
             progress_info.train_loss += avg_loss.detach().item() / args.training_args.grad_acc
 
             # Backpropagate

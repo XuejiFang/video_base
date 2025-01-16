@@ -187,7 +187,8 @@ class CogVideoXPipeline(DiffusionPipeline, CogVideoXLoraLoaderMixin):
             2 ** (len(self.vae.config.block_out_channels) - 1) if hasattr(self, "vae") and self.vae is not None else 8
         )
         self.vae_scale_factor_temporal = (
-            self.vae.config.temporal_compression_ratio if hasattr(self, "vae") and self.vae is not None else 4
+            # self.vae.config.temporal_compression_ratio if hasattr(self, "vae") and self.vae is not None else 4
+            getattr(self.vae.config, "temporal_compression_ratio", 4)
         )
         self.vae_scaling_factor_image = (
             self.vae.config.scaling_factor if hasattr(self, "vae") and self.vae is not None else 0.7
@@ -341,7 +342,10 @@ class CogVideoXPipeline(DiffusionPipeline, CogVideoXLoraLoaderMixin):
             latents = latents.to(device)
 
         # scale the initial noise by the standard deviation required by the scheduler
-        latents = latents * self.scheduler.init_noise_sigma
+        try:
+            latents = latents * self.scheduler.init_noise_sigma
+        except AttributeError:
+            pass
         return latents
 
     def decode_latents(self, latents: torch.Tensor) -> torch.Tensor:
@@ -704,8 +708,10 @@ class CogVideoXPipeline(DiffusionPipeline, CogVideoXLoraLoaderMixin):
                     continue
 
                 latent_model_input = torch.cat([latents] * 2) if do_classifier_free_guidance else latents
-                latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
-
+                try:
+                    latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
+                except AttributeError:
+                    pass
                 # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
                 timestep = t.expand(latent_model_input.shape[0])
 
