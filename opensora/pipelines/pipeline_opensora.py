@@ -20,11 +20,12 @@ from typing import Callable, List, Optional, Tuple, Union
 import math
 import torch
 from transformers import T5EncoderModel, T5Tokenizer
-
+from dataclasses import dataclass
 from diffusers.models import AutoencoderKL, Transformer2DModel
 from diffusers.schedulers import DPMSolverMultistepScheduler
 from diffusers.utils import (
     BACKENDS_MAPPING,
+    BaseOutput,
     deprecate,
     is_bs4_available,
     is_ftfy_available,
@@ -107,6 +108,18 @@ def retrieve_timesteps(
         timesteps = scheduler.timesteps
     return timesteps, num_inference_steps
 
+@dataclass
+class OpenSoraPipelineOutput(BaseOutput):
+    """
+    Output class for image pipelines.
+
+    Args:
+        images (`List[PIL.Image.Image]` or `np.ndarray`)
+            List of denoised PIL images of length `batch_size` or NumPy array of shape `(batch_size, height, width,
+            num_channels)`.
+    """
+
+    frames: Union[List[Image.Image], np.ndarray]
 
 class OpenSoraPipeline(DiffusionPipeline):
     r"""
@@ -824,7 +837,7 @@ class OpenSoraPipeline(DiffusionPipeline):
         if not return_dict:
             return (image,)
 
-        return ImagePipelineOutput(images=image)
+        return OpenSoraPipelineOutput(frames=image)
 
 
     def decode_latents(self, latents):

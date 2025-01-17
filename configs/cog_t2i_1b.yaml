@@ -41,7 +41,14 @@ transformer:
         time_embed_dim:                     512
         timestep_activation_fn:             silu
         use_rotary_positional_embeddings:   false
-
+scheduler:
+    module: diffusers
+    class_name: FlowMatchEulerDiscreteScheduler
+    params:
+        shift:                              1.0
+pipeline:
+    module: cogvideo.pipelines
+    class_name: CogVideoXPipeline
 loss_function:
     module: training.losses
     class_name: CogFMLoss

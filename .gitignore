@@ -1,6 +1,8 @@
 **__pycache__/
+*.log
 *.pt
 *.pkl
+*.ipynb*
 outputs*
 results*
 slurm*

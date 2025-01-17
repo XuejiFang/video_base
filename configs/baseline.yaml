@@ -50,7 +50,14 @@ transformer:
         use_linear_projection:          false
         use_rope:                       true
         use_stable_fp32:                false
-
+scheduler:
+    module: diffusers
+    class_name: FlowMatchEulerDiscreteScheduler
+    params:
+        shift:                              1.0
+pipeline:
+    module: opensora.pipelines
+    class_name: OpenSoraPipeline
 
 loss_function:
     module: training.losses
