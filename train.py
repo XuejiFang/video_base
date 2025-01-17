@@ -75,10 +75,9 @@ def main(args):
     model.gradient_checkpointing = train_args.gradient_checkpointing
 
     logger.info("***** Creating EMA Model *****")
-    ema_model = deepcopy(model)
     ema_model = EMAModel(
-        ema_model.parameters(), decay=train_args.ema_decay, update_after_step=train_args.ema_start_step,
-        model_cls=get_class(args.transformer), model_config=ema_model.config
+        model.parameters(), decay=train_args.ema_decay, update_after_step=train_args.ema_start_step,
+        model_cls=get_class(args.transformer), model_config=model.config, foreach=True
     )
     ema_model.to(accelerator.device)
 
