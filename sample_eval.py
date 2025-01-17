@@ -77,7 +77,8 @@ def generate_images(args, accelerator, vae, tokenizer, text_encoder, transformer
 
     prompts_paths = [
         # === Image ===
-        'prompts/prompts_zemin.txt'
+        # 'prompts/prompts_zemin.txt'
+        'prompts/prompts_image-9m.txt'
         # 'prompts/prompts_imagenet.txt'
     ]
 
