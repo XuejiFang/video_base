@@ -4,6 +4,7 @@
 *.pkl
 *.ipynb*
 debug*
+diffnext*
 outputs*
 results*
 slurm*
