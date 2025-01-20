@@ -3,8 +3,10 @@
 *.pt
 *.pkl
 *.ipynb*
+datasets*
 debug*
 diffnext*
+geneval*
 outputs*
 results*
 slurm*
