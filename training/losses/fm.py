@@ -98,3 +98,131 @@ class OpenSoraFMLoss:
 
         loss = F.mse_loss(model_pred.float(), target.float(), reduction="none")
         return loss.mean()
+    
+class MomoFMLoss:
+    def __init__(
+        self,
+        num_train_timesteps: int = 1000,
+        shift: float = 1.0,
+    ):
+        timesteps = np.linspace(1, num_train_timesteps, num_train_timesteps, dtype=np.float32)[::-1].copy()
+        timesteps = torch.from_numpy(timesteps).to(dtype=torch.float32)
+
+        sigmas = timesteps / num_train_timesteps
+        sigmas = shift * sigmas / (1 + (shift - 1) * sigmas)
+
+        self.timesteps = sigmas * num_train_timesteps
+
+        self.sigmas = sigmas.to("cpu")  # to avoid too much CPU/GPU communication
+        self.sigma_min = self.sigmas[-1].item()
+        self.sigma_max = self.sigmas[0].item()
+    
+    def __call__(self, model, z_0, prompt_embed, prompt_mask):
+        """
+            z_0:            B C F H W
+            prompt_embed:   B L C
+        """
+        # 1. concat text token and <bov> token
+        bsz = z_0.shape[0]
+        text_token = model.text_embedder(prompt_embed)
+        # HW C  -> B HW C
+        bov_token = model.temporal_encoder.bov_token.unsqueeze(0).expand(bsz, -1, -1)
+        temporal_input = torch.cat([text_token, bov_token], dim=1)
+        # 2. get temporal encoder last frame as condition for later
+        cur_cond = model.temporal_encoder(temporal_input, 1).last_frame
+        # 3. add noise to z_0 to get z_t, spatial decoder predict flow with condition
+        z_0 = z_0.permute(0,2,1,3,4)  # BFCHW for CogVideo
+        z_T = torch.randn_like(z_0, dtype=z_0.dtype)
+        bsz, _, _, _, _ = z_0.shape
+        sigmas = torch.randn((bsz,), device=z_0.device, dtype=z_0.dtype).sigmoid()
+        timestep = sigmas*1000
+        sigmas = rearrange(sigmas, "b -> b 1 1 1 1")
+        z_t = (1 - sigmas) * z_0 + sigmas * z_T
+        model_pred = model.spatial_decoder(
+            hidden_states           = z_t,
+            encoder_hidden_states   = cur_cond,
+            timestep                = timestep.to(z_t.dtype),
+        )[0]
+        # 4. compuse mse loss between added nosise and prediction
+        target = z_T - z_0
+        loss = F.mse_loss(model_pred.float(), target.float(), reduction="none")
+        
+        return loss.mean()
+    
+class MomoVidFMLoss:
+    def __init__(
+        self,
+        num_train_timesteps: int = 1000,
+        shift: float = 1.0,
+    ):
+        timesteps = np.linspace(1, num_train_timesteps, num_train_timesteps, dtype=np.float32)[::-1].copy()
+        timesteps = torch.from_numpy(timesteps).to(dtype=torch.float32)
+
+        sigmas = timesteps / num_train_timesteps
+        sigmas = shift * sigmas / (1 + (shift - 1) * sigmas)
+
+        self.timesteps = sigmas * num_train_timesteps
+
+        self.sigmas = sigmas.to("cpu")  # to avoid too much CPU/GPU communication
+        self.sigma_min = self.sigmas[-1].item()
+        self.sigma_max = self.sigmas[0].item()
+    
+    def __call__(self, model, z_0, prompt_embed, prompt_mask):
+        """
+            z_0:            B C F H W
+            prompt_embed:   B L C
+        """
+        # 1. concat text token and <bov> token and first (T-1) frames
+        bsz, _, f, _, _ = z_0.shape
+        text_token = model.text_embedder(prompt_embed)
+        # HW C  -> B HW C
+        bov_token = model.temporal_encoder.bov_token.unsqueeze(0).expand(bsz, -1, -1)
+        # prev frames
+        prev_frames = rearrange(z_0[:, :, :-1, ...], 'b c f h w -> (b f) 1 c h w')
+        prev_frames = model.spatial_decoder.patch_embedder(prev_frames)
+        prev_frames = rearrange(prev_frames, '(b f) n c -> b (f n) c', f=f-1)
+        temporal_input = torch.cat([text_token, bov_token, prev_frames], dim=1)
+        # 2. get temporal encoder last frame as condition for later
+        cur_cond = model.temporal_encoder(temporal_input, f).last_frame
+        # 3. add noise to z_0 to get z_t, spatial decoder predict flow with condition
+        # BCFHW -> (BF)1CHW
+        z_0 = rearrange(z_0, 'b c f h w -> (b f) 1 c h w')
+        cur_cond = rearrange(cur_cond, 'b (f n) c -> (b f) n c', f=f)
+        mini_bsz = None # bsz
+        if mini_bsz is None:
+            z_T = torch.randn_like(z_0, dtype=z_0.dtype)
+            bsz = z_0.shape[0]
+            sigmas = torch.randn((bsz,), device=z_0.device, dtype=z_0.dtype).sigmoid()
+            timestep = sigmas*1000
+            sigmas = rearrange(sigmas, "b -> b 1 1 1 1")
+            z_t = (1 - sigmas) * z_0 + sigmas * z_T
+            model_pred = model.spatial_decoder(
+                hidden_states           = z_t,
+                encoder_hidden_states   = cur_cond,
+                timestep                = timestep.to(z_t.dtype),
+            )[0]
+            # 4. compuse mse loss between added nosise and prediction
+            target = z_T - z_0
+            loss = F.mse_loss(model_pred.float(), target.float(), reduction="none")
+        else:
+            loss = 0.
+            for idx in range(0, z_0.shape[0]//mini_bsz):
+                z_0_        = z_0[idx*mini_bsz : (idx+1)*mini_bsz, ...]
+                cur_cond_   = cur_cond[idx*mini_bsz : (idx+1)*mini_bsz, ...]
+
+                z_T = torch.randn_like(z_0_, dtype=z_0_.dtype)
+                bsz = z_0_.shape[0]
+                sigmas = torch.randn((bsz,), device=z_0_.device, dtype=z_0_.dtype).sigmoid()
+                timestep = sigmas*1000
+                sigmas = rearrange(sigmas, "b -> b 1 1 1 1")
+                z_t = (1 - sigmas) * z_0_ + sigmas * z_T
+                model_pred = model.spatial_decoder(
+                    hidden_states           = z_t,
+                    encoder_hidden_states   = cur_cond_,
+                    timestep                = timestep.to(z_t.dtype),
+                )[0]
+                # 4. compuse mse loss between added nosise and prediction
+                target = z_T - z_0_
+                loss += F.mse_loss(model_pred.float(), target.float(), reduction="none")
+
+        return loss.mean()

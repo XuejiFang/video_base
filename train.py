@@ -15,6 +15,7 @@ from diffusers.training_utils import EMAModel
 from diffusers.utils import export_to_video
 from pathlib import Path
 from utils import dict_to_namespace, get_class, get_instance, register_module, freeze_module
+from safetensors.torch import load_file
 from training.train_loop import train_diff_loop
 
 @torch.no_grad()
@@ -30,6 +31,7 @@ def generate_videos(prompts, vae, tokenizer, text_encoder, transformer, device, 
 def main(args):
     # 1. Initialize Accelerator
     train_args = args.training_args
+    set_seed(getattr(train_args, 'seed', 20021215))
     logging_dir = Path(train_args.output_dir, train_args.logging_dir)
     accelerator_project_config = ProjectConfiguration(project_dir=train_args.output_dir, logging_dir=logging_dir)
     accelerator = Accelerator(
@@ -80,6 +82,19 @@ def main(args):
         model_cls=get_class(args.transformer), model_config=model.config, foreach=True
     )
     ema_model.to(accelerator.device)
+
+    model_path = getattr(train_args, 'resume_model', False)
+    ema_model_path = getattr(train_args, 'resume_ema_model', False)
+    if model_path is not None:
+        logger.info(f"  Resume Model Weights from {model_path}")
+        model_states = load_file(model_path)
+        model.load_state_dict(model_states)
+        del model_states
+    if ema_model_path is not None:
+        logger.info(f"  Resume EMA Model Weights from {ema_model_path}")
+        ema_model_states = load_file(ema_model_path)
+        ema_model.load_state_dict(ema_model_states)
+        del ema_model_states
 
     # create custom saving & loading hooks so that `accelerator.save_state(...)` serializes in a nice format
     def save_model_hook(models, weights, output_dir):

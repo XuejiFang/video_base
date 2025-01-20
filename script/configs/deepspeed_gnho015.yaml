@@ -9,13 +9,13 @@ deepspeed_config:
 distributed_type: DEEPSPEED
 downcast_bf16: 'no'
 enable_cpu_affinity: false
-machine_rank: 0
-main_process_ip: 127.0.0.1
+machine_rank: 1
+main_process_ip: gnho013
 main_process_port: 9199
 main_training_function: main
 mixed_precision: bf16
-num_machines: 1
-num_processes: 8
+num_machines: 4
+num_processes: 32
 rdzv_backend: static
 same_network: true
 tpu_env: []

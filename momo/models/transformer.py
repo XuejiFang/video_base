@@ -133,8 +133,11 @@ class TemporalEncoder(nn.Module):
                     image_rotary_emb,
                     attention_mask,
                 )
-        
-        last_frame = hidden_states[:, -self.frame_token_length:, :]
+
+        if cur_num_frames == 1:
+            last_frame = hidden_states[:, -self.frame_token_length:, :]
+        else:
+            last_frame = hidden_states[:, -cur_num_frames*self.frame_token_length:, :]
 
         return MomoOutput(hidden_states=hidden_states, last_frame=last_frame)
 

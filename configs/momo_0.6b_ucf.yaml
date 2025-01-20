@@ -1,0 +1,106 @@
+vae:
+    module: momo.models
+    class_name: AutoencoderKLCogVideoX
+    params:
+        pretrained: /storage/qiguojunLab/qiguojun/home/Models/THUDM/CogVideoX1.5-5B/vae/
+tokenizer:
+    module: transformers
+    class_name: T5Tokenizer
+    params:
+        pretrained: /storage/qiguojunLab/qiguojun/home/Models/google/mt5-base/
+text_encoder:
+    module: transformers
+    class_name: T5EncoderModel
+    params:
+        pretrained: /storage/qiguojunLab/qiguojun/home/Models/google/mt5-base/
+transformer:
+    module: momo.models
+    class_name: MomoTransformer
+    params:
+        attention_head_dim:             48
+        dropout:                        0.0
+        flip_sin_to_cos:                true
+        freq_shift:                     0
+        latent_space_channel:           16
+        max_height:                     512
+        max_text_seq_length:            226
+        max_width:                      512
+        norm_elementwise_affine:        true
+        norm_eps:                       0.00001
+        num_attention_heads:            21
+        patch_bias:                     true
+        patch_size:                     2
+        patch_size_t:                   1
+        sample_frames:                  1
+        sample_height:                  240
+        sample_width:                   320
+        spatial_interpolation_scale:    8
+        spatial_num_frames:             1
+        spatial_num_layers:             24
+        temporal_compression_ratio:     4
+        temporal_interpolation_scale:   1
+        temporal_num_layers:            16
+        text_embed_dim:                 768
+        time_embed_dim:                 512
+        timestep_activation_fn:             "silu"
+        use_learned_positional_embeddings:  false
+        use_rotary_positional_embeddings:   true
+
+scheduler:
+    module: diffusers
+    class_name: FlowMatchEulerDiscreteScheduler
+    params:
+        shift:                              1.0
+pipeline:
+    module: momo.pipeline
+    class_name: MomoPipeline
+loss_function:
+    module: training.losses
+    class_name: MomoVidFMLoss
+    params: {}
+    
+optimizer:
+    module: torch.optim
+    class_name: AdamW
+    params:
+        lr:                         0.0001
+        betas:                      [0.9, 0.999]
+        weight_decay:               0.01
+        eps:                        0.00000001
+lr_scheduler:
+    name:                           constant_with_warmup
+    lr_warmup_steps:                1000
+
+dataloader:
+    module: training.dataset
+    class_name: VideoDataLoader
+    params:
+        cfg:                        0.1
+        max_text_seq_length:        226
+        vid_pkl_path:               datasets/ucf-101/train.pkl
+        vid_folder:                 '/'
+        target_path_keys:           path
+        target_prompt_key:          caption
+        max_height:                 240
+        max_width:                  320
+        num_frames:                 29
+        sample_rate:                1
+        batch_size:                 6
+        num_workers:                16
+        
+training_args:
+    team_name:                      maple-video
+    exp_name:                       momo_0.6b_vid
+    output_dir:                     ./outputs/
+    logging_dir:                    logs
+    grad_acc:                       1
+    mixed_precision:                bf16
+    report_to:                      wandb
+    ema_decay:                      0.9999
+    ema_start_step:                 0
+    max_train_steps:                200_000
+    resume_from_checkpoint:         latest
+    checkpointing_steps:            600 # 1 epoch
+    checkpoints_total_limit:        100
+    gradient_checkpointing:         true
+    max_grad_norm:                  10.0

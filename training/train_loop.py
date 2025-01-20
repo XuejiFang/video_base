@@ -60,26 +60,28 @@ def train_diff_loop(
 
     while progress_info.global_step <= max_train_steps:
         for step, batch in enumerate(dataloader):
-            x           = batch["pixel_values"].to(accelerator.device, dtype=weight_dtype)
-            input_ids   = batch["input_ids"].to(accelerator.device).squeeze_(1)
-            cond_mask   = batch["cond_mask"].to(accelerator.device).squeeze_(1)
-            with torch.no_grad():
-                z_0             = vae.scale_(vae.encode(x).latent_dist.sample()) if x.shape[1] == 3 else vae.scale_(x)
-                prompt_embed    = text_encoder(input_ids, cond_mask)['last_hidden_state']
+            """ [important] for gradient accumulation """
+            with accelerator.accumulate(model): 
+                x           = batch["pixel_values"].to(accelerator.device, dtype=weight_dtype)
+                input_ids   = batch["input_ids"].to(accelerator.device).squeeze_(1)
+                cond_mask   = batch["cond_mask"].to(accelerator.device).squeeze_(1)
+                with torch.no_grad():
+                    z_0             = vae.scale_(vae.encode(x).latent_dist.sample()) if x.shape[1] == 3 else vae.scale_(x)
+                    prompt_embed    = text_encoder(input_ids, cond_mask)['last_hidden_state']
 
-            loss = loss_func(model, z_0, prompt_embed, cond_mask)
-            avg_loss = accelerator.gather(loss).mean()
-            progress_info.train_loss += avg_loss.detach().item() / args.training_args.grad_acc
+                loss = loss_func(model, z_0, prompt_embed, cond_mask)
+                avg_loss = accelerator.gather(loss).mean()
+                progress_info.train_loss += avg_loss.detach().item() / args.training_args.grad_acc
 
-            # Backpropagate
-            accelerator.backward(loss)
-            if accelerator.sync_gradients:
-                params_to_clip = model.parameters()
-                accelerator.clip_grad_norm_(params_to_clip, args.training_args.max_grad_norm)
-            optimizer.step()
-            lr_scheduler.step()
-            optimizer.zero_grad()
-            # Update progress bar, ema model and save ckpts
-            if accelerator.sync_gradients:
-                ema_model.step(model.parameters())
-                sync_gradients_info(args, accelerator, loss, lr_scheduler, progress_bar, progress_info, logger)
+                # Backpropagate
+                accelerator.backward(loss)
+                if accelerator.sync_gradients:
+                    params_to_clip = model.parameters()
+                    accelerator.clip_grad_norm_(params_to_clip, args.training_args.max_grad_norm)
+                optimizer.step()
+                lr_scheduler.step()
+                optimizer.zero_grad()
+                # Update progress bar, ema model and save ckpts
+                if accelerator.sync_gradients:
+                    ema_model.step(model.parameters())
+                    sync_gradients_info(args, accelerator, loss, lr_scheduler, progress_bar, progress_info, logger)

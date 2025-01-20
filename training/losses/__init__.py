@@ -1,1 +1,1 @@
-from .fm import CogFMLoss, OpenSoraFMLoss
+from .fm import CogFMLoss, OpenSoraFMLoss, MomoFMLoss, MomoVidFMLoss

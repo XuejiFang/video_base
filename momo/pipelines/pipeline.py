@@ -43,8 +43,9 @@ class MomoPipeline(DiffusionPipeline):
 
     def pos_process(self, frames):
         """BCFHW -> [[PIL.Image, PIL.Image], [...], [...]]"""
+        frames = (frames - frames.min()) / (frames.max() - frames.min())
         frames = rearrange(frames, 'b c f h w -> b f h w c')
-        frames = frames.mul_(127.5).add(127.5).float().cpu().numpy().astype(np.uint8)
+        frames = frames.mul_(255).float().cpu().numpy().astype(np.uint8)
         videos = [[Image.fromarray(frame) for frame in batch] for batch in frames]
         return videos
 
@@ -63,8 +64,12 @@ class MomoPipeline(DiffusionPipeline):
         num_diffusion_steps=30,
         negative_prompt=[""],
         num_samples_per_prompt=1,
+        **kwargs,
     ):
-        assert isinstance(prompts, list)
+        if isinstance(prompts, str):
+            prompts = [prompts]
+        else:
+            assert isinstance(prompts, list)
 
         self.scheduler.set_timesteps(num_inference_steps=num_diffusion_steps)
         device = self._execution_device

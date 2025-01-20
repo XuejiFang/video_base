@@ -97,7 +97,7 @@ def generate_images(args, accelerator, vae, tokenizer, text_encoder, transformer
                     save_path = os.path.join(save_dir, f"{i}-{j}.png")
                     if os.path.exists(save_path):
                         continue
-                    image = pipe(prompt, num_frames=1, height=256, width=256, num_inference_steps=30).frames[0][0]
+                    image = pipe(prompt, num_frames=1, height=256, width=256, num_inference_steps=30)[0][0][0]
                     image.save(save_path)
                     image_grid.append(image)
                 image_grid = make_image_grid(image_grid, cols=5, rows=1)
