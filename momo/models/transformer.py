@@ -408,6 +408,6 @@ class MomoTransformer(ModelMixin, ConfigMixin):
         )
 
 
-    def set_gradient_checkpointing(self):
-        self.temporal_encoder.gradient_checkpointing = True
-        self.spatial_decoder.gradient_checkpointing = True
+    def set_gradient_checkpointing(self, value):
+        self.temporal_encoder.gradient_checkpointing = value
+        self.spatial_decoder.gradient_checkpointing = value

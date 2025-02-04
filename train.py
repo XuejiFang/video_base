@@ -74,7 +74,7 @@ def main(args):
 
     model = get_instance(args.transformer).to(device, dtype=weight_dtype)
     model.train()
-    model.gradient_checkpointing = train_args.gradient_checkpointing
+    model.set_gradient_checkpointing(train_args.gradient_checkpointing)
 
     logger.info("***** Creating EMA Model *****")
     ema_model = EMAModel(
@@ -83,8 +83,8 @@ def main(args):
     )
     ema_model.to(accelerator.device)
 
-    model_path = getattr(train_args, 'resume_model', False)
-    ema_model_path = getattr(train_args, 'resume_ema_model', False)
+    model_path = getattr(train_args, 'resume_model', None)
+    ema_model_path = getattr(train_args, 'resume_ema_model', None)
     if model_path is not None:
         logger.info(f"  Resume Model Weights from {model_path}")
         model_states = load_file(model_path)
