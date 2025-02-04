@@ -83,9 +83,9 @@ dataloader:
         target_prompt_key:          caption
         max_height:                 256
         max_width:                  256
-        num_frames:                 25
-        sample_rate:                2
-        batch_size:                 8
+        num_frames:                 29
+        sample_rate:                4
+        batch_size:                 22
         num_workers:                16
         
 training_args:
@@ -93,15 +93,15 @@ training_args:
     exp_name:                       momo_0.6b_t2v
     output_dir:                     ./outputs/
     logging_dir:                    logs
-    grad_acc:                       4
+    grad_acc:                       1
     mixed_precision:                bf16
     report_to:                      wandb
     ema_decay:                      0.999
     ema_start_step:                 0
     max_train_steps:                200_000
-    resume_from_checkpoint:         false
-    resume_model:                   outputs/momo_0.6b_t2i/checkpoint-20000/model/diffusion_pytorch_model.safetensors
-    resume_ema_model:               outputs/momo_0.6b_t2i/checkpoint-20000/model_ema/diffusion_pytorch_model.safetensors
+    resume_from_checkpoint:         null # latest
+    # resume_model:                   outputs/momo_0.6b_t2i/checkpoint-20000/model/diffusion_pytorch_model.safetensors
+    # resume_ema_model:               outputs/momo_0.6b_t2i/checkpoint-20000/model_ema/diffusion_pytorch_model.safetensors
     checkpointing_steps:            500
     checkpoints_total_limit:        100
     gradient_checkpointing:         true

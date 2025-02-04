@@ -66,10 +66,46 @@ def generate_videos_vebench(args, accelerator, vae, tokenizer, text_encoder, tra
                     export_to_video(video, save_path, fps=8)
 
 @torch.no_grad()
+def generate_videos(args, accelerator, vae, tokenizer, text_encoder, transformer, device, weight_dtype):
+    from utils import get_class, get_instance
+    import os
+    scheduler = get_instance(args.scheduler)
+    pipe_cls = get_class(args.pipeline)
+    pipe = pipe_cls(vae=vae, text_encoder=text_encoder, tokenizer=tokenizer, 
+                             transformer=transformer, scheduler=scheduler).to(device, dtype=weight_dtype)
+
+    num_frames  = (args.dataloader.params.num_frames - 1)//4+1
+    height      = args.dataloader.params.max_height
+    width       = args.dataloader.params.max_width
+    prompts_paths = [
+        # 'prompts/prompts_ucf-101.txt'
+        # 'prompts/ucf_bench/test.txt'
+        'prompts/prompts_webvid_long.txt'
+    ]
+
+    save_root = Path(args.save_dir, args.model.split('/')[-4], args.model.split('/')[-3], args.model.split('/')[-2])
+    for prompt_path in prompts_paths:
+        with open(prompt_path, 'r', encoding="utf-8") as f:
+            prompts = f.readlines()
+            for i, prompt in enumerate(prompts):
+                save_dir = os.path.join(save_root, prompt_path.split('/')[-1].split('.')[0])
+                os.makedirs(save_dir, exist_ok=True)
+                if i % accelerator.num_processes != accelerator.process_index:
+                    continue
+                prompt = prompt.strip()
+                for j in range(1):
+                    save_path = os.path.join(save_dir, f"{i}-{j}.mp4")
+                    if os.path.exists(save_path):
+                        continue
+                    video = pipe(prompt, num_frames=num_frames, height=height, width=width, num_inference_steps=30)[0][0]
+                    export_to_video(video, save_path, fps=8)
+
+@torch.no_grad()
 def generate_images(args, accelerator, vae, tokenizer, text_encoder, transformer, device, weight_dtype):
     from diffusers.utils import make_image_grid
     from utils import get_class, get_instance
     import os
+    import numpy as np
     scheduler = get_instance(args.scheduler)
     pipe_cls = get_class(args.pipeline)
     pipe = pipe_cls(vae=vae, text_encoder=text_encoder, tokenizer=tokenizer, 
@@ -80,6 +116,7 @@ def generate_images(args, accelerator, vae, tokenizer, text_encoder, transformer
         # 'prompts/prompts_zemin.txt'
         'prompts/prompts_image-9m.txt'
         # 'prompts/prompts_imagenet.txt'
+        # 'prompts/imagenet/50k.txt',
     ]
 
     save_root = Path(args.save_dir, args.model.split('/')[-4], args.model.split('/')[-3], args.model.split('/')[-2])
@@ -93,15 +130,15 @@ def generate_images(args, accelerator, vae, tokenizer, text_encoder, transformer
                     continue
                 prompt = prompt.strip()
                 image_grid = []
-                for j in range(5):
+                for j in range(1):
                     save_path = os.path.join(save_dir, f"{i}-{j}.png")
-                    if os.path.exists(save_path):
-                        continue
+                    # if os.path.exists(save_path):
+                    #     continue
                     image = pipe(prompt, num_frames=1, height=256, width=256, num_inference_steps=30)[0][0][0]
                     image.save(save_path)
-                    image_grid.append(image)
-                image_grid = make_image_grid(image_grid, cols=5, rows=1)
-                image_grid.save(os.path.join(save_dir, f"grid-{i}.png"))
+                    # image_grid.append(image)
+                # image_grid = make_image_grid(image_grid, cols=5, rows=1)
+                # image_grid.save(os.path.join(save_dir, f"grid-{i}.png"))
 
 def main(args):
     # 1. Initialize Accelerator
@@ -128,7 +165,8 @@ def main(args):
     states = load_file(args.model)
     transformer.load_state_dict(states)
     print(f"Total GPUS: {accelerator.num_processes}, Current GPU: {accelerator.process_index}")
-    generate_images(args, accelerator, vae, tokenizer, text_encoder, transformer, device, weight_dtype)
+    # generate_images(args, accelerator, vae, tokenizer, text_encoder, transformer, device, weight_dtype)
+    generate_videos(args, accelerator, vae, tokenizer, text_encoder, transformer, device, weight_dtype)
     # 3. Prepare Optimizer
 
     # 4. Prepare Dataloader

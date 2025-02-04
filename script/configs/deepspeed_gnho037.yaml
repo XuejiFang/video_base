@@ -9,7 +9,7 @@ deepspeed_config:
 distributed_type: DEEPSPEED
 downcast_bf16: 'no'
 enable_cpu_affinity: false
-machine_rank: 4
+machine_rank: 3
 main_process_ip: gnho013
 main_process_port: 9199
 main_training_function: main
