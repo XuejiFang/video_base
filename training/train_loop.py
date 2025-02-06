@@ -9,11 +9,14 @@ class ProgressInfo:
         self.global_step = global_step
         self.train_loss = train_loss
 
-def sync_gradients_info(args, accelerator, loss, lr_scheduler, progress_bar, progress_info, logger):
+def sync_gradients_info(args, accelerator, loss, lr_scheduler, progress_bar, progress_info, logger, loss_list=None):
     # Checks if the accelerator has performed an optimization step behind the scenes
     progress_bar.update(1)
     progress_info.global_step += 1
     accelerator.log({"train_loss": progress_info.train_loss}, step=progress_info.global_step)
+    if loss_list is not None:
+        for i in range(len(loss_list)):
+            accelerator.log({f"Frame-{i}": loss_list[i]}, step=progress_info.global_step)
     progress_info.train_loss = 0.0
 
     # DeepSpeed requires saving weights on every device; saving weights only on the main process would cause issues.
@@ -69,7 +72,7 @@ def train_diff_loop(
                     z_0             = vae.scale_(vae.encode(x).latent_dist.sample()) if x.shape[1] == 3 else vae.scale_(x)
                     prompt_embed    = text_encoder(input_ids, cond_mask)['last_hidden_state']
 
-                loss = loss_func(model, z_0, prompt_embed, cond_mask)
+                loss, loss_list = loss_func(model, z_0, prompt_embed, cond_mask)
                 avg_loss = accelerator.gather(loss).mean()
                 progress_info.train_loss += avg_loss.detach().item() / args.training_args.grad_acc
 
@@ -84,4 +87,5 @@ def train_diff_loop(
                 # Update progress bar, ema model and save ckpts
                 if accelerator.sync_gradients:
                     ema_model.step(model.parameters())
-                    sync_gradients_info(args, accelerator, loss, lr_scheduler, progress_bar, progress_info, logger)
+                    sync_gradients_info(args, accelerator, loss, lr_scheduler, progress_bar, progress_info, logger,
+                                        loss_list=loss_list)

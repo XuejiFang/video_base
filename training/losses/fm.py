@@ -154,6 +154,9 @@ class MomoVidFMLoss:
         self,
         num_train_timesteps: int = 1000,
         shift: float = 1.0,
+        use_degrade: bool = False,
+        degrade_scheduler: str = "cosine",
+        num_frames: int = None,
     ):
         timesteps = np.linspace(1, num_train_timesteps, num_train_timesteps, dtype=np.float32)[::-1].copy()
         timesteps = torch.from_numpy(timesteps).to(dtype=torch.float32)
@@ -166,6 +169,15 @@ class MomoVidFMLoss:
         self.sigmas = sigmas.to("cpu")  # to avoid too much CPU/GPU communication
         self.sigma_min = self.sigmas[-1].item()
         self.sigma_max = self.sigmas[0].item()
+
+        self.use_degrade = use_degrade
+        if self.use_degrade:
+            assert num_frames is not None
+            if degrade_scheduler == 'cosine':
+                self.delta = torch.cos(torch.arange(0, num_frames) / num_frames)
+                self.delta = self.delta.unsqueeze(0).unsqueeze(2).unsqueeze(3)
+            else:
+                raise NotImplementedError
     
     def __call__(self, model, z_0, prompt_embed, prompt_mask):
         """
@@ -184,6 +196,12 @@ class MomoVidFMLoss:
         temporal_input = torch.cat([text_token, bov_token, prev_frames], dim=1)
         # 2. get temporal encoder last frame as condition for later
         cur_cond = model.temporal_encoder(temporal_input, f).last_frame
+        if self.use_degrade:
+            self.delta = self.delta.to(cur_cond.device, cur_cond.dtype)
+            cur_cond = rearrange(cur_cond, "b (f n) c -> b f n c", f=f)
+            eps = torch.randn_like(cur_cond, dtype=cur_cond.dtype, device=cur_cond.device)
+            cur_cond = self.delta*cur_cond + (1-self.delta)*eps
+            cur_cond = rearrange(cur_cond, "b f n c -> b (f n) c")
         # 3. add noise to z_0 to get z_t, spatial decoder predict flow with condition
         # BCFHW -> (BF)1CHW
         z_0 = rearrange(z_0, 'b c f h w -> (b f) 1 c h w')
@@ -224,5 +242,6 @@ class MomoVidFMLoss:
                 # 4. compuse mse loss between added nosise and prediction
                 target = z_T - z_0_
                 loss += F.mse_loss(model_pred.float(), target.float(), reduction="none")
-
-        return loss.mean()
+        # loss: (b f) 1 c h w
+        loss_list = rearrange(loss.detach().cpu(), "(b f) 1 c h w -> f (b c h w)", f=f).mean(dim=1).numpy()
+        return loss.mean(), loss_list
