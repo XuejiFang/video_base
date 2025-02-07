@@ -129,7 +129,7 @@ class MomoFMLoss:
         bov_token = model.temporal_encoder.bov_token.unsqueeze(0).expand(bsz, -1, -1)
         temporal_input = torch.cat([text_token, bov_token], dim=1)
         # 2. get temporal encoder last frame as condition for later
-        cur_cond = model.temporal_encoder(temporal_input, 1).last_frame
+        cur_cond = model.temporal_encoder(temporal_input, 1).all_frame
         # 3. add noise to z_0 to get z_t, spatial decoder predict flow with condition
         z_0 = z_0.permute(0,2,1,3,4)  # BFCHW for CogVideo
         z_T = torch.randn_like(z_0, dtype=z_0.dtype)
@@ -190,13 +190,16 @@ class MomoVidFMLoss:
         # HW C  -> B HW C
         bov_token = model.temporal_encoder.bov_token.unsqueeze(0).expand(bsz, -1, -1)
         # prev frames
-        prev_frames = rearrange(z_0[:, :, :-1, ...], 'b c f h w -> (b f) 1 c h w')
-        prev_frames = model.spatial_decoder.patch_embedder(prev_frames)
-        prev_frames = rearrange(prev_frames, '(b f) n c -> b (f n) c', f=f-1)
-        temporal_input = torch.cat([text_token, bov_token, prev_frames], dim=1)
+        if f > 1:
+            prev_frames = rearrange(z_0[:, :, :-1, ...], 'b c f h w -> (b f) 1 c h w')
+            prev_frames = model.spatial_decoder.patch_embedder(prev_frames)
+            prev_frames = rearrange(prev_frames, '(b f) n c -> b (f n) c', f=f-1)
+            temporal_input = torch.cat([text_token, bov_token, prev_frames], dim=1)
+        else:
+            temporal_input = torch.cat([text_token, bov_token], dim=1)
         # 2. get temporal encoder last frame as condition for later
-        cur_cond = model.temporal_encoder(temporal_input, f).last_frame
-        if self.use_degrade:
+        cur_cond = model.temporal_encoder(temporal_input, f).all_frame
+        if self.use_degrade and f>1:
             self.delta = self.delta.to(cur_cond.device, cur_cond.dtype)
             cur_cond = rearrange(cur_cond, "b (f n) c -> b f n c", f=f)
             eps = torch.randn_like(cur_cond, dtype=cur_cond.dtype, device=cur_cond.device)

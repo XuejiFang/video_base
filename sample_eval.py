@@ -78,9 +78,11 @@ def generate_videos(args, accelerator, vae, tokenizer, text_encoder, transformer
     height      = args.dataloader.params.max_height
     width       = args.dataloader.params.max_width
     prompts_paths = [
-        # 'prompts/prompts_ucf-101.txt'
+        'prompts/prompts_ucf-101.txt'
         # 'prompts/ucf_bench/test.txt'
-        'prompts/prompts_webvid_long.txt'
+        # 'prompts/prompts_webvid_long.txt'
+        # 'prompts/prompts_openvid.txt'
+        # 'prompts/prompts_openvid16.txt'
     ]
 
     save_root = Path(args.save_dir, args.model.split('/')[-4], args.model.split('/')[-3], args.model.split('/')[-2])

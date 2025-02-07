@@ -76,30 +76,29 @@ lr_scheduler:
 
 dataloader:
     module: training.dataset
-    class_name: JointDataLoader
+    class_name: VideoDataLoader
     params:
         cfg:                        0.1
         max_text_seq_length:        226
         # vid_pkl_path:               /storage/qiguojunLab/fangxueji/Projects/video_base/dataset/phase3_t2v_v2_webvid_hd_only/webvid-6.6m.pkl
-        vid_pkl_path:               /storage/qiguojunLab/fangxueji/Projects/video_base/dataset/phase4_t2v_v1_hd_finetune/openvid-1m.pkl
+        # vid_pkl_path:               /storage/qiguojunLab/fangxueji/Projects/video_base/dataset/phase4_t2v_v1_hd_finetune/openvid-1m.pkl
+        vid_pkl_path:               datasets/ucf-101/train.pkl
         vid_folder:                 '/'
-        img_pkl_path:               /storage/qiguojunLab/fangxueji/Projects/video_base/dataset/phase3_t2v_v4.3_joint_youtube_image/image-9m.pkl
-        img_folder:                 './'
         target_path_keys:           path
         target_prompt_key:          caption
         max_height:                 256
         max_width:                  256
         num_frames:                 29
         sample_rate:                4
-        batch_size:                 32
+        batch_size:                 64
         num_workers:                16
         
 training_args:
     team_name:                      maple-video
-    exp_name:                       momo_0.6b_t2v_openvid
+    exp_name:                       momo_0.6b_t2v_ucf
     output_dir:                     ./outputs/
     logging_dir:                    logs
-    grad_acc:                       1
+    grad_acc:                       2
     mixed_precision:                bf16
     report_to:                      wandb
     ema_decay:                      0.999

@@ -15,6 +15,7 @@ import torch.nn as nn
 @dataclass
 class MomoOutput(BaseOutput):
     hidden_states: torch.Tensor = None
+    all_frame: torch.Tensor = None          # B FHW C
     last_frame: torch.Tensor = None         # B HW C
     sample: torch.Tensor = None             # B F C H W
 
@@ -134,12 +135,10 @@ class TemporalEncoder(nn.Module):
                     attention_mask,
                 )
 
-        if cur_num_frames == 1:
-            last_frame = hidden_states[:, -self.frame_token_length:, :]
-        else:
-            last_frame = hidden_states[:, -cur_num_frames*self.frame_token_length:, :]
+        all_frame = hidden_states[:, self.text_length:, :]
+        last_frame = hidden_states[:, -self.frame_token_length:, :]
 
-        return MomoOutput(hidden_states=hidden_states, last_frame=last_frame)
+        return MomoOutput(hidden_states=hidden_states, all_frame=all_frame, last_frame=last_frame)
 
 
 class SpatialDecoder(nn.Module):
