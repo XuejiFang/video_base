@@ -42,6 +42,7 @@ class Joint_from_PKL(Dataset):
             transform=None,
             cfg=None,
             batch_size=None,
+            img_ratio=0.2,
             **kwargs,
         ):
 
@@ -71,13 +72,14 @@ class Joint_from_PKL(Dataset):
 
         self.batch_size = batch_size
         self.num_trigger = 0
-        self.use_img = False if random.random() > 0.5 else True
+        self.img_ratio = img_ratio
+        self.use_img = False if random.random() > img_ratio else True
     
     def get_batch(self, idx):
         # import pdb; pdb.set_trace()
         if self.num_trigger % self.batch_size == 0:
             flag = random.random()
-            self.use_img = True if flag <= 0.5 else False
+            self.use_img = True if flag <= self.img_ratio else False
             # print("Reset use_img:", flag,  self.use_img)
         
         if self.use_img:
@@ -157,7 +159,7 @@ class JointDataLoader():
             img_pkl_path, img_folder,
             target_path_keys, target_prompt_key,
             max_height, max_width, num_frames, sample_rate,
-            batch_size, num_workers, 
+            batch_size, num_workers, img_ratio
     ):
         resize = [CenterCropResizeVideo((max_height, max_width)), ]
         transform = transforms.Compose([
@@ -181,6 +183,7 @@ class JointDataLoader():
             cfg=cfg,
             batch_size=batch_size,
             max_text_seq_length=max_text_seq_length,
+            img_ratio=img_ratio
         )
 
         self.dataloader = DataLoader(

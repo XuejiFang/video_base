@@ -228,9 +228,8 @@ class OpenSoraT2V(ModelMixin, ConfigMixin):
                 in_features=self.caption_channels, hidden_size=self.inner_dim
             )
 
-    def _set_gradient_checkpointing(self, module, value=False):
-        if hasattr(module, "gradient_checkpointing"):
-            module.gradient_checkpointing = value
+    def set_gradient_checkpointing(self, value=False):
+        self.gradient_checkpointing = value
 
     def forward(
         self,

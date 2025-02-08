@@ -4,6 +4,7 @@ from diffusers.models.normalization import AdaLayerNorm
 from diffusers.configuration_utils import ConfigMixin, register_to_config
 from diffusers.models.embeddings import TimestepEmbedding, Timesteps
 from diffusers.utils import BaseOutput
+from einops import rearrange
 from typing import Tuple
 
 from .embeddings import MomoPatchEmbed, _prepare_rotary_positional_embeddings
@@ -28,7 +29,21 @@ class TextEmbedder(nn.Module):
     def forward(self, x) -> torch.Tensor:
 
         return self.norm(self.proj(x))
-    
+
+class AdaLayerNormZero(nn.Module):
+    """Adaptive LayerNorm with residual stats."""
+
+    def __init__(self, dim, rank=None, num_stats=2, eps=1e-6):
+        super(AdaLayerNormZero, self).__init__()
+        self.lora = nn.Linear(dim, rank, bias=False) if rank else nn.Identity()
+        self.proj = nn.Linear(rank if rank else dim, num_stats * dim)
+        self.norm = nn.LayerNorm(dim, eps, elementwise_affine=False) if eps else nn.Identity()
+        self.activation, self.num_stats = nn.SiLU(), num_stats
+
+    def forward(self, x, z) -> Tuple[torch.Tensor, Tuple[torch.Tensor]]:
+        stats = self.proj(self.lora(self.activation(z))).chunk(self.num_stats, dim=-1)
+        return self.norm(x).mul(1 + stats[0]).add_(stats[1])
+
 class TemporalEncoder(nn.Module):
     _supports_gradient_checkpointing = True
     def __init__(
@@ -47,6 +62,8 @@ class TemporalEncoder(nn.Module):
         use_rotary_positional_embeddings: bool = True,
         max_width: int = 32,    
         max_height: int = 32,
+        use_mixer: bool = False,
+        mixer_rank: int = 24,
     ):
         super().__init__()
         self.attn_head_dim = attn_head_dim
@@ -72,6 +89,12 @@ class TemporalEncoder(nn.Module):
         self.max_height = max_height
         self.max_width = max_width
         self.bov_token = nn.Parameter(torch.randn(self.frame_token_length, inner_dim))
+        self.use_mixer = use_mixer
+        if self.use_mixer:
+            self.mixer = AdaLayerNormZero(
+                dim = inner_dim,
+                rank = mixer_rank,
+            )
 
         self.gradient_checkpointing = False
 
@@ -133,10 +156,24 @@ class TemporalEncoder(nn.Module):
                     self.text_length,
                     image_rotary_emb,
                     attention_mask,
+                    block_id
                 )
-
-        all_frame = hidden_states[:, self.text_length:, :]
-        last_frame = hidden_states[:, -self.frame_token_length:, :]
+        
+        if self.use_mixer:
+            if self.training:
+                # all_frame: B FN C
+                all_frame = hidden_states[:, self.text_length:, :]
+                all_frame = rearrange(all_frame, "B (F N) C -> (B F) N C", F=cur_num_frames)
+                all_frame = self.mixer(self.bov_token.unsqueeze(0), all_frame)
+                all_frame = rearrange(all_frame, "(B F) N C -> B (F N) C", F=cur_num_frames)
+                last_frame = all_frame[:, -self.frame_token_length:, :]
+            else:
+                all_frame = None # not need
+                last_frame = hidden_states[:, -self.frame_token_length:, :]
+                last_frame = self.mixer(self.bov_token.unsqueeze(0), last_frame)
+        else:
+            all_frame = hidden_states[:, self.text_length:, :]
+            last_frame = hidden_states[:, -self.frame_token_length:, :]
 
         return MomoOutput(hidden_states=hidden_states, all_frame=all_frame, last_frame=last_frame)
 
@@ -352,6 +389,8 @@ class MomoTransformer(ModelMixin, ConfigMixin):
         time_embed_dim: int = 512,
         norm_eps: float = 1e-5,
         norm_elementwise_affine: bool = True,
+        use_mixer: bool = False,
+        mixer_rank: int = 24,
     ):
         super().__init__()
         inner_dim = num_attention_heads * attention_head_dim
@@ -371,6 +410,8 @@ class MomoTransformer(ModelMixin, ConfigMixin):
             patch_size_t=patch_size_t,
             max_height=max_height//spatial_interpolation_scale,
             max_width=max_width//spatial_interpolation_scale,
+            use_mixer=use_mixer,
+            mixer_rank=mixer_rank,
         )
 
         self.spatial_decoder = SpatialDecoder(

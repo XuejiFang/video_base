@@ -219,6 +219,7 @@ class BasiceTemporalBlock(nn.Module):
         cond_length: int, 
         image_rotary_emb: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,
         attention_mask: torch.Tensor = None,
+        block_id: int = None
     ) -> torch.Tensor:
         # norm & modulate
         norm_hidden_states = self.norm1(hidden_states)
@@ -230,6 +231,7 @@ class BasiceTemporalBlock(nn.Module):
             image_rotary_emb=image_rotary_emb,
             attention_mask=attention_mask,
             cond_length=cond_length,
+            pause=block_id == 1,
         )
 
         hidden_states = hidden_states + attn_hidden_states
