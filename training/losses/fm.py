@@ -310,12 +310,17 @@ class MomoVidFMLossSF:
         cur_cond = rearrange(cur_cond, 'b (f n) c -> (b f) n c', f=f)
 
         z_T = torch.randn_like(z_0, dtype=z_0.dtype)
-        sigmas = (torch.randn((z_0.shape[0],), device=z_0.device, dtype=z_0.dtype)*self.std+self.mean).sigmoid()
+
+        use_sf =  random.random() < 0.5
+        if f > 1 and use_sf:
+            sigmas = (torch.randn((z_0.shape[0],), device=z_0.device, dtype=z_0.dtype)*self.std+self.mean).sigmoid()
+        else:
+            sigmas = torch.randn((z_0.shape[0],), device=z_0.device, dtype=z_0.dtype).sigmoid()
+            
         timestep = sigmas*1000
         sigmas = rearrange(sigmas, "b -> b 1 1 1 1")
         z_t = (1 - sigmas) * z_0 + sigmas * z_T
 
-        use_sf =  random.random() < 0.5
         if f > 1 and use_sf:
             # student forcing
             with torch.no_grad():
@@ -346,7 +351,7 @@ class MomoVidFMLossSF:
             prev_frames_hat = z_0_hat[:-bsz]        # drop last frame
             prev_frames_hat = model.spatial_decoder.patch_embedder(prev_frames_hat)
             prev_frames_hat = rearrange(prev_frames_hat, '(b f) n c -> b (f n) c', f=f-1)
-            temporal_input_hat = torch.cat([text_token, bov_token, prev_frames_hat], dim=1)
+            temporal_input_hat = torch.cat([text_token, bov_token, prev_frames_hat.detach()], dim=1)
             cur_cond_hat = model.temporal_encoder(temporal_input_hat, f).all_frame
             cur_cond_hat = rearrange(cur_cond_hat, 'b (f n) c -> (b f) n c', f=f)
             # 6. model pred

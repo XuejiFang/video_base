@@ -45,8 +45,8 @@ transformer:
         timestep_activation_fn:             "silu"
         use_learned_positional_embeddings:  false
         use_rotary_positional_embeddings:   true
-        use_mixer:                          true
-        mixer_rank:                     24
+        # use_mixer:                          true
+        # mixer_rank:                     24
 
 scheduler:
     module: diffusers
@@ -97,7 +97,7 @@ dataloader:
         
 training_args:
     team_name:                      maple-video
-    exp_name:                       momo_0.6b_t2v_ucf_r24
+    exp_name:                       momo_0.6b_t2v_ucf
     output_dir:                     ./outputs/
     logging_dir:                    logs
     grad_acc:                       1
@@ -106,9 +106,9 @@ training_args:
     ema_decay:                      0.999
     ema_start_step:                 0
     max_train_steps:                50_000
-    resume_from_checkpoint:         null # latest
-    resume_model:                   outputs/momo_0.6b_t2v_ucf_r24/checkpoint-0/model/diffusion_pytorch_model.safetensors
-    resume_ema_model:               outputs/momo_0.6b_t2v_ucf_r24/checkpoint-0/model_ema/diffusion_pytorch_model.safetensors
+    resume_from_checkpoint:         latest
+    # resume_model:                   outputs/momo_0.6b_t2v_ucf_r24/checkpoint-0/model/diffusion_pytorch_model.safetensors
+    # resume_ema_model:               outputs/momo_0.6b_t2v_ucf_r24/checkpoint-0/model_ema/diffusion_pytorch_model.safetensors
     checkpointing_steps:            500
     checkpoints_total_limit:        100
     gradient_checkpointing:         true

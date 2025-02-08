@@ -231,7 +231,7 @@ class BasiceTemporalBlock(nn.Module):
             image_rotary_emb=image_rotary_emb,
             attention_mask=attention_mask,
             cond_length=cond_length,
-            pause=block_id == 1,
+            debug=False, # block_id == 10,
         )
 
         hidden_states = hidden_states + attn_hidden_states

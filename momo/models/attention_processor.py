@@ -37,7 +37,7 @@ class MomoAttnProcessor2_0:
         attention_mask: Optional[torch.Tensor] = None,
         image_rotary_emb: Optional[torch.Tensor] = None,
         cond_length: int = None,
-        pause: bool = False
+        debug: bool = False
     ) -> torch.Tensor:
         if encoder_hidden_states is not None:
             # Spatial Decoder
@@ -76,14 +76,13 @@ class MomoAttnProcessor2_0:
                 key[:, :, cond_length:] = apply_rotary_emb(key[:, :, cond_length:], image_rotary_emb)
 
         # qkv 2,30,17776,64
-        if pause:
+        if debug:
             import pdb; pdb.set_trace()
             torch.save(query, './q.pt')
             torch.save(key, './k.pt')
             torch.save(value, './v.pt')
             torch.save(attention_mask, './mask.pt')
-        else:
-            pass
+
         hidden_states = F.scaled_dot_product_attention(
             query, key, value, attn_mask=attention_mask, dropout_p=0.0, is_causal=False
         )

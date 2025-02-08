@@ -61,7 +61,7 @@ loss_function:
         use_degrade:                false
         degrade_scheduler:          cosine
         num_frames:                 8
-        mean:                       -0.5 # -2
+        mean:                       -2
         std:                        0.5
     
 optimizer:
@@ -97,7 +97,7 @@ dataloader:
         
 training_args:
     team_name:                      maple-video
-    exp_name:                       momo_0.6b_t2v_ucf_sf_u-0.5_s0.5
+    exp_name:                       momo_0.6b_t2v_ucf_sf_u-2_s0.5
     output_dir:                     ./outputs/
     logging_dir:                    logs
     grad_acc:                       1
