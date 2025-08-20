@@ -1,4 +1,5 @@
 # Video Base - 视频生成基础模型
+<video src="https://jaggar-oss.oss-cn-shanghai.aliyuncs.com/video/video_base_250210.mp4" width="512" controls preload="metadata"></video>
 
 ## 项目简介
 
@@ -39,66 +40,6 @@ pip install -r requirements.txt
 ```bash
 python app.py
 ```
-
-3. 在浏览器中打开ComfyUI界面
-4. 配置文本提示词和生成参数
-5. 点击运行开始视频生成
-
-## 示例视频展示
-
-### 示例 1
-<video src="./assets/media32.mp4" width="384" controls preload="metadata"></video>
-
-### 示例 2
-<video src="assets/media33.mp4" width="384" controls preload="metadata"></video>
-
-### 示例 3
-<video src="assets/media34.mp4" width="384" controls preload="metadata"></video>
-
-### 示例 4
-<video src="assets/media35.mp4" width="384" controls preload="metadata"></video>
-
-### 示例 5
-<video src="assets/media36.mp4" width="384" controls preload="metadata"></video>
-
-### 示例 6
-<video src="assets/media37.mp4" width="384" controls preload="metadata"></video>
-
-### 示例 7
-<video src="assets/media38.mp4" width="384" controls preload="metadata"></video>
-
-### 示例 8
-<video src="assets/media39.mp4" width="384" controls preload="metadata"></video>
-
-### 示例 9
-<video src="assets/media40.mp4" width="384" controls preload="metadata"></video>
-
-### 示例 10
-<video src="assets/media41.mp4" width="384" controls preload="metadata"></video>
-
-### 示例 11
-<video src="assets/media42.mp4" width="384" controls preload="metadata"></video>
-
-### 示例 12
-<video src="assets/media43.mp4" width="384" controls preload="metadata"></video>
-
-### 示例 13
-<video src="assets/media44.mp4" width="384" controls preload="metadata"></video>
-
-### 示例 14
-<video src="assets/media45.mp4" width="384" controls preload="metadata"></video>
-
-### 示例 15
-<video src="assets/media46.mp4" width="384" controls preload="metadata"></video>
-
-### 示例 16
-<video src="assets/media47.mp4" width="384" controls preload="metadata"></video>
-
-### 示例 17
-<video src="assets/media48.mp4" width="384" controls preload="metadata"></video>
-
-### 示例 18
-<video src="assets/media49.mp4" width="384" controls preload="metadata"></video>
 
 ## 项目结构
 
