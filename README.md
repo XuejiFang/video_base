@@ -47,7 +47,7 @@ python app.py
 ## 示例视频展示
 
 ### 示例 1
-<video src="assets/media32.mp4" width="384" controls preload="metadata"></video>
+<video src="./assets/media32.mp4" width="384" controls preload="metadata"></video>
 
 ### 示例 2
 <video src="assets/media33.mp4" width="384" controls preload="metadata"></video>
