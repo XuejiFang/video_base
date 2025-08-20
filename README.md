@@ -46,115 +46,59 @@ python app.py
 
 ## 示例视频展示
 
-以下是使用本项目生成的示例视频，展示了不同场景和风格的视频生成效果：
-
 ### 示例 1
-<video width="320" height="240" controls>
-  <source src="assets/media32.mp4" type="video/mp4">
-  您的浏览器不支持视频标签。
-</video>
+<video src="assets/media32.mp4" width="384" controls preload="metadata"></video>
 
 ### 示例 2
-<video width="320" height="240" controls>
-  <source src="assets/media33.mp4" type="video/mp4">
-  您的浏览器不支持视频标签。
-</video>
+<video src="assets/media33.mp4" width="384" controls preload="metadata"></video>
 
 ### 示例 3
-<video width="320" height="240" controls>
-  <source src="assets/media34.mp4" type="video/mp4">
-  您的浏览器不支持视频标签。
-</video>
+<video src="assets/media34.mp4" width="384" controls preload="metadata"></video>
 
 ### 示例 4
-<video width="320" height="240" controls>
-  <source src="assets/media35.mp4" type="video/mp4">
-  您的浏览器不支持视频标签。
-</video>
+<video src="assets/media35.mp4" width="384" controls preload="metadata"></video>
 
 ### 示例 5
-<video width="320" height="240" controls>
-  <source src="assets/media36.mp4" type="video/mp4">
-  您的浏览器不支持视频标签。
-</video>
+<video src="assets/media36.mp4" width="384" controls preload="metadata"></video>
 
 ### 示例 6
-<video width="320" height="240" controls>
-  <source src="assets/media37.mp4" type="video/mp4">
-  您的浏览器不支持视频标签。
-</video>
+<video src="assets/media37.mp4" width="384" controls preload="metadata"></video>
 
 ### 示例 7
-<video width="320" height="240" controls>
-  <source src="assets/media38.mp4" type="video/mp4">
-  您的浏览器不支持视频标签。
-</video>
+<video src="assets/media38.mp4" width="384" controls preload="metadata"></video>
 
 ### 示例 8
-<video width="320" height="240" controls>
-  <source src="assets/media39.mp4" type="video/mp4">
-  您的浏览器不支持视频标签。
-</video>
+<video src="assets/media39.mp4" width="384" controls preload="metadata"></video>
 
 ### 示例 9
-<video width="320" height="240" controls>
-  <source src="assets/media40.mp4" type="video/mp4">
-  您的浏览器不支持视频标签。
-</video>
+<video src="assets/media40.mp4" width="384" controls preload="metadata"></video>
 
 ### 示例 10
-<video width="320" height="240" controls>
-  <source src="assets/media41.mp4" type="video/mp4">
-  您的浏览器不支持视频标签。
-</video>
+<video src="assets/media41.mp4" width="384" controls preload="metadata"></video>
 
 ### 示例 11
-<video width="320" height="240" controls>
-  <source src="assets/media42.mp4" type="video/mp4">
-  您的浏览器不支持视频标签。
-</video>
+<video src="assets/media42.mp4" width="384" controls preload="metadata"></video>
 
 ### 示例 12
-<video width="320" height="240" controls>
-  <source src="assets/media43.mp4" type="video/mp4">
-  您的浏览器不支持视频标签。
-</video>
+<video src="assets/media43.mp4" width="384" controls preload="metadata"></video>
 
 ### 示例 13
-<video width="320" height="240" controls>
-  <source src="assets/media44.mp4" type="video/mp4">
-  您的浏览器不支持视频标签。
-</video>
+<video src="assets/media44.mp4" width="384" controls preload="metadata"></video>
 
 ### 示例 14
-<video width="320" height="240" controls>
-  <source src="assets/media45.mp4" type="video/mp4">
-  您的浏览器不支持视频标签。
-</video>
+<video src="assets/media45.mp4" width="384" controls preload="metadata"></video>
 
 ### 示例 15
-<video width="320" height="240" controls>
-  <source src="assets/media46.mp4" type="video/mp4">
-  您的浏览器不支持视频标签。
-</video>
+<video src="assets/media46.mp4" width="384" controls preload="metadata"></video>
 
 ### 示例 16
-<video width="320" height="240" controls>
-  <source src="assets/media47.mp4" type="video/mp4">
-  您的浏览器不支持视频标签。
-</video>
+<video src="assets/media47.mp4" width="384" controls preload="metadata"></video>
 
 ### 示例 17
-<video width="320" height="240" controls>
-  <source src="assets/media48.mp4" type="video/mp4">
-  您的浏览器不支持视频标签。
-</video>
+<video src="assets/media48.mp4" width="384" controls preload="metadata"></video>
 
 ### 示例 18
-<video width="320" height="240" controls>
-  <source src="assets/media49.mp4" type="video/mp4">
-  您的浏览器不支持视频标签。
-</video>
+<video src="assets/media49.mp4" width="384" controls preload="metadata"></video>
 
 ## 项目结构
 
@@ -176,8 +120,6 @@ video_base/
 - **框架**: ComfyUI
 - **后端**: Python
 - **前端**: Web界面
-
-
 
 ---
 
