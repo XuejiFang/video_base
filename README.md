@@ -1,7 +1,7 @@
 # Video Base - 视频生成基础模型
 
 <div align="center">
-  <video src="https://jaggar-oss.oss-cn-shanghai.aliyuncs.com/video/video_base_250210.mp4"width="70%" poster=""> </video>
+  <video src="https://github.com/user-attachments/assets/fb4cfe91-ac29-404b-8060-f2878b516dbc" width="70%" controls autoplay loop muted playsinline poster=""></video>
 </div>
 
 ## 项目简介
