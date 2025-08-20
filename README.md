@@ -1,5 +1,8 @@
 # Video Base - 视频生成基础模型
-<video src="https://jaggar-oss.oss-cn-shanghai.aliyuncs.com/video/video_base_250210.mp4" width="512" controls preload="metadata"></video>
+
+<div align="center">
+  <video src="https://jaggar-oss.oss-cn-shanghai.aliyuncs.com/video/video_base_250210.mp4"width="70%" poster=""> </video>
+</div>
 
 ## 项目简介
 
